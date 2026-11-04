@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление учебным графиком</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 1400px; margin: 2rem auto; padding: 0 1rem; color: #333; }
+        .card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; font-weight: bold; margin-right: 10px; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-success { background: #2ecc71; color: white; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-danger { background: #e74c3c; color: white; padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+        th { background: #ecf0f1; }
+        td[contenteditable="true"] { background: #fff; cursor: text; min-width: 80px; }
+        td[contenteditable="true"]:focus { outline: 2px solid #3498db; background: #f0f8ff; }
+        .log-box { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 4px; font-family: monospace; margin-top: 1rem; white-space: pre-wrap; }
+        .info { color: #e74c3c; font-size: 0.85rem; margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+    <h1>📅 Управление учебным графиком практики</h1>
+    
+    <div class="card">
+        <h2>1. Управление данными</h2>
+        <div style="margin-bottom: 1rem;">
+            <button id="btnLoad" class="btn btn-primary">🔄 Загрузить из data/schedule.json</button>
+            <button id="btnAddRow" class="btn btn-warning">➕ Добавить новую группу/практику</button>
+            <button id="btnDownload" class="btn btn-success">💾 Скачать обновленный schedule.json</button>
+        </div>
+        <p class="info">⚠️ <b>Важно:</b> После добавления новой строки и заполнения данных, нажмите "Скачать". Затем замените файл <code>data/schedule.json</code> в папке проекта на скачанный.</p>
+        <p style="color: #666; font-size: 0.9rem;">💡 <b>Подсказка:</b> Кликайте прямо на ячейки таблицы, чтобы изменить текст. Чтобы удалить лишнюю строку, нажмите красную кнопку "🗑" справа.</p>
+    </div>
+
+    <div class="card">
+        <h2>2. Текущий график (редактируемый)</h2>
+        <div id="statusLog" class="log-box">Нажмите "Загрузить из data/schedule.json" для начала работы.</div>
+        <div style="overflow-x: auto;">
+            <table id="scheduleTable">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Группа</th>
+                        <th style="width: 60px;">Тип</th>
+                        <th>Модули (ПМ)</th>
+                        <th style="width: 60px;">Часы</th>
+                        <th style="width: 50px;">День нач.</th>
+                        <th style="width: 70px;">Месяц нач.</th>
+                        <th style="width: 50px;">День кон.</th>
+                        <th style="width: 70px;">Месяц кон.</th>
+                        <th style="width: 60px;">Год</th>
+                        <th>Специальность</th>
+                        <th style="width: 50px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let scheduleData = [];
+
+        // 1. Загрузка из локального JSON файла
+        document.getElementById('btnLoad').addEventListener('click', async () => {
+            try {
+                // Добавляем случайный параметр, чтобы избежать кэширования браузером
+                const response = await fetch('../data/schedule.json?t=' + new Date().getTime());
+                if (!response.ok) throw new Error('Файл не найден. Убедитесь, что запущен python3 -m http.server');
+                scheduleData = await response.json();
+                renderTable();
+                document.getElementById('statusLog').textContent = `✅ Успешно загружено ${scheduleData.length} записей из data/schedule.json`;
+            } catch (error) {
+                document.getElementById('statusLog').textContent = `❌ Ошибка загрузки: ${error.message}\nУбедитесь, что файл data/schedule.json существует и сервер запущен.`;
+            }
+        });
+
+        // 2. Отрисовка таблицы
+        function renderTable() {
+            const tbody = document.getElementById('scheduleBody');
+            tbody.innerHTML = '';
+            scheduleData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td contenteditable="true" data-idx="${index}" data-field="group">${row.group}</td>
+                    <td contenteditable="true" data-idx="${index}" data-field="type">${row.type}</td>
+                    <td contenteditable="true" data-idx="${index}" data-field="module">${row.module}</td>
+                    <td contenteditable="true" data-idx="${index}" data-field="hours">${row.hours}</td>
+                    <td contenteditable="true" data-idx="${index}" data-field="d_start">${row.d_start}</td>
+                    <td contenteditable="true" data-idx="${index}" data-field="m_start">${row.m_start}</td>
+                    <td contenteditable="true" data-idx="${index}" data-field="d_end">${row.d_end}</td>
+                    <td contenteditable="true" data-idx="${index}" data-field="m_end">${row.m_end}</td>
+                    <td contenteditable="true" data-idx="${index}" data-field="year">${row.year}</td>
+                    <td contenteditable="true" data-idx="${index}" data-field="spec">${row.spec}</td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-danger" onclick="deleteRow(${index})">🗑</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 3. Обработка редактирования ячеек
+        document.getElementById('scheduleBody').addEventListener('input', (e) => {
+            if (e.target.tagName === 'TD') {
+                const idx = e.target.dataset.idx;
+                const field = e.target.dataset.field;
+                scheduleData[idx][field] = e.target.textContent.trim();
+            }
+        });
+
+        // 4. Добавление новой строки
+        document.getElementById('btnAddRow').addEventListener('click', () => {
+            const newRow = {
+                group: "Новая группа",
+                type: "УП",
+                module: "Введите название ПМ",
+                hours: "0",
+                d_start: "01",
+                m_start: "месяц",
+                d_end: "01",
+                m_end: "месяц",
+                year: "2026",
+                spec: "Код и название специальности"
+            };
+            scheduleData.push(newRow);
+            renderTable();
+            document.getElementById('statusLog').textContent = '✅ Добавлена новая пустая строка в конец таблицы. Заполните её и нажмите "Скачать обновленный schedule.json".';
+            
+            // Прокрутка к новой строке
+            setTimeout(() => {
+                window.scrollTo(0, document.body.scrollHeight);
+            }, 100);
+        });
+
+        // 5. Удаление строки (глобальная функция для onclick)
+        window.deleteRow = function(index) {
+            if (confirm('Удалить эту строку из графика?')) {
+                scheduleData.splice(index, 1);
+                renderTable();
+                document.getElementById('statusLog').textContent = '🗑 Строка удалена. Не забудьте скачать обновленный файл.';
+            }
+        };
+
+        // 6. Скачивание обновленного JSON
+        document.getElementById('btnDownload').addEventListener('click', () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(scheduleData, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "schedule.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            document.getElementById('statusLog').textContent = '✅ Файл schedule.json скачан! Замените им старый файл в папке data/';
+        });
+
+        // Автозагрузка при открытии страницы
+        document.getElementById('btnLoad').click();
+    </script>
+</body>
+</html>

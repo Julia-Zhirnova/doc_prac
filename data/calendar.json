@@ -1,0 +1,40 @@
+[
+  {"id": "c1", "group_code": "ИС1-25", "semester": 3, "practice_type": "УП", "start_date": "24.11.2026", "end_date": "30.11.2026"},
+  {"id": "c2", "group_code": "ИС1-25", "semester": 3, "practice_type": "ПП", "start_date": "01.12.2026", "end_date": "21.12.2026"},
+  {"id": "c3", "group_code": "ИС1-25", "semester": 3, "practice_type": "Экзамен", "start_date": "22.12.2026", "end_date": "28.12.2026"},
+  {"id": "c4", "group_code": "ИС1-25", "semester": 3, "practice_type": "Каникулы", "start_date": "29.12.2026", "end_date": "11.01.2027"},
+  {"id": "c5", "group_code": "ИС1-25", "semester": 4, "practice_type": "УП", "start_date": "18.05.2027", "end_date": "24.05.2027"},
+  {"id": "c6", "group_code": "ИС1-25", "semester": 4, "practice_type": "ПП", "start_date": "25.05.2027", "end_date": "14.06.2027"},
+  {"id": "c7", "group_code": "ИС1-25", "semester": 4, "practice_type": "Экзамен", "start_date": "15.06.2027", "end_date": "28.06.2027"},
+  
+  {"id": "c8", "group_code": "ИС2-25", "semester": 3, "practice_type": "УП", "start_date": "24.11.2026", "end_date": "30.11.2026"},
+  {"id": "c9", "group_code": "ИС2-25", "semester": 3, "practice_type": "ПП", "start_date": "01.12.2026", "end_date": "21.12.2026"},
+  {"id": "c10", "group_code": "ИС2-25", "semester": 4, "practice_type": "УП", "start_date": "18.05.2027", "end_date": "24.05.2027"},
+  {"id": "c11", "group_code": "ИС2-25", "semester": 4, "practice_type": "ПП", "start_date": "25.05.2027", "end_date": "14.06.2027"},
+  
+  {"id": "c12", "group_code": "ИС-24", "semester": 5, "practice_type": "УП", "start_date": "24.11.2026", "end_date": "07.12.2026"},
+  {"id": "c13", "group_code": "ИС-24", "semester": 5, "practice_type": "ПП", "start_date": "08.12.2026", "end_date": "21.12.2026"},
+  {"id": "c14", "group_code": "ИС-24", "semester": 5, "practice_type": "Экзамен", "start_date": "22.12.2026", "end_date": "28.12.2026"},
+  {"id": "c15", "group_code": "ИС-24", "semester": 5, "practice_type": "Каникулы", "start_date": "29.12.2026", "end_date": "11.01.2027"},
+  {"id": "c16", "group_code": "ИС-24", "semester": 6, "practice_type": "УП", "start_date": "16.03.2027", "end_date": "22.03.2027"},
+  {"id": "c17", "group_code": "ИС-24", "semester": 6, "practice_type": "ПП", "start_date": "23.03.2027", "end_date": "12.04.2027"},
+  {"id": "c18", "group_code": "ИС-24", "semester": 6, "practice_type": "Экзамен", "start_date": "13.04.2027", "end_date": "19.04.2027"},
+  
+  {"id": "c19", "group_code": "ОИБ-24", "semester": 5, "practice_type": "УП", "start_date": "24.11.2026", "end_date": "21.12.2026"},
+  {"id": "c20", "group_code": "ОИБ-24", "semester": 5, "practice_type": "Экзамен", "start_date": "22.12.2026", "end_date": "28.12.2026"},
+  {"id": "c21", "group_code": "ОИБ-24", "semester": 5, "practice_type": "Каникулы", "start_date": "29.12.2026", "end_date": "11.01.2027"},
+  {"id": "c22", "group_code": "ОИБ-24", "semester": 6, "practice_type": "УП", "start_date": "20.04.2027", "end_date": "24.05.2027"},
+  {"id": "c23", "group_code": "ОИБ-24", "semester": 6, "practice_type": "ПП", "start_date": "25.05.2027", "end_date": "28.06.2027"},
+  {"id": "c24", "group_code": "ОИБ-24", "semester": 6, "practice_type": "Экзамен", "start_date": "29.06.2027", "end_date": "05.07.2027"},
+  
+  {"id": "c25", "group_code": "ИСП-23", "semester": 7, "practice_type": "УП", "start_date": "24.11.2026", "end_date": "07.12.2026"},
+  {"id": "c26", "group_code": "ИСП-23", "semester": 7, "practice_type": "ПП", "start_date": "08.12.2026", "end_date": "21.12.2026"},
+  {"id": "c27", "group_code": "ИСП-23", "semester": 7, "practice_type": "Экзамен", "start_date": "22.12.2026", "end_date": "28.12.2026"},
+  {"id": "c28", "group_code": "ИСП-23", "semester": 7, "practice_type": "Каникулы", "start_date": "29.12.2026", "end_date": "11.01.2027"},
+  {"id": "c29", "group_code": "ИСП-23", "semester": 8, "practice_type": "ПП", "start_date": "16.02.2027", "end_date": "10.05.2027"},
+  {"id": "c30", "group_code": "ИСП-23", "semester": 8, "practice_type": "Экзамен", "start_date": "11.05.2027", "end_date": "17.05.2027"},
+  
+  {"id": "c31", "group_code": "ТЭСИС-26", "semester": 1, "practice_type": "Каникулы", "start_date": "29.12.2026", "end_date": "11.01.2027"},
+  {"id": "c32", "group_code": "ТЭСИС-26", "semester": 2, "practice_type": "УП", "start_date": "01.06.2027", "end_date": "14.06.2027"},
+  {"id": "c33", "group_code": "ТЭСИС-26", "semester": 2, "practice_type": "Экзамен", "start_date": "15.06.2027", "end_date": "28.06.2027"}
+]
