@@ -6,23 +6,28 @@
     <title>Настройка справочников практики</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 1600px; margin: 1rem auto; padding: 0 1rem; color: #333; }
+        .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+        .header-nav h1 { margin: 0; font-size: 1.5rem; }
         .tabs { display: flex; gap: 5px; margin-bottom: 1rem; border-bottom: 2px solid #ddd; flex-wrap: wrap; }
         .tab { padding: 10px 15px; cursor: pointer; background: #ecf0f1; border: 1px solid #ddd; border-bottom: none; border-radius: 5px 5px 0 0; font-weight: bold; font-size: 0.9rem; }
         .tab.active { background: #fff; border-bottom: 2px solid #fff; margin-bottom: -2px; color: #2980b9; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
-        .btn { padding: 0.6rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-right: 8px; margin-bottom: 8px; }
+        .btn { padding: 0.6rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-right: 8px; margin-bottom: 8px; text-decoration: none; display: inline-block; }
         .btn-primary { background: #3498db; color: white; }
         .btn-success { background: #2ecc71; color: white; }
         .btn-warning { background: #f39c12; color: white; }
         .btn-danger { background: #e74c3c; color: white; padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+        .btn-secondary { background: #95a5a6; color: white; }
         
         .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1rem; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 800px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
         th { background: #ecf0f1; cursor: pointer; user-select: none; white-space: nowrap; }
         th:hover { background: #d5dbdb; }
+        th.sort-asc::after { content: " ▲"; font-size: 0.8em; }
+        th.sort-desc::after { content: " ▼"; font-size: 0.8em; }
         
         td[contenteditable="true"] { background: #fff; cursor: text; }
         td[contenteditable="true"]:focus { outline: 2px solid #3498db; background: #f0f8ff; }
@@ -30,10 +35,9 @@
         
         .info-box { background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; line-height: 1.5; }
         
-        /* Стили для модулей */
         .modules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
         .semester-column { background: #fff; border: 2px solid #3498db; border-radius: 8px; padding: 1rem; }
-        .semester-column h3 { margin-top: 0; color: #2c3e50; text-align: center; background: #3498db; color: white; padding: 0.5rem; border-radius: 4px; }
+        .semester-column h3 { margin-top: 0; color: #fff; text-align: center; background: #3498db; padding: 0.5rem; border-radius: 4px; }
         .module-card { background: #f8f9fa; border-left: 4px solid #3498db; padding: 0.8rem; margin-bottom: 0.8rem; border-radius: 4px; }
         .module-practice { font-weight: bold; color: #e67e22; font-size: 1.1rem; margin-bottom: 0.3rem; }
         .module-pm { font-weight: bold; color: #2c3e50; margin-bottom: 0.3rem; }
@@ -42,7 +46,6 @@
         .module-mdk-item { margin-bottom: 0.2rem; font-size: 0.85rem; color: #555; }
         .module-hours { display: inline-block; background: #3498db; color: white; padding: 0.2rem 0.5rem; border-radius: 3px; font-size: 0.8rem; margin-top: 0.3rem; }
         
-        /* Стили для сводки и календаря */
         .summary-calendar-layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.5rem; }
         .group-selector { background: #fff; border: 2px solid #3498db; border-radius: 8px; padding: 1rem; }
         .group-selector select { width: 100%; padding: 0.5rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; }
@@ -80,11 +83,16 @@
             .modules-grid { grid-template-columns: 1fr; }
             .summary-calendar-layout { grid-template-columns: 1fr; }
             .calendar-container { grid-template-columns: 1fr; }
+            .header-nav { flex-direction: column; align-items: flex-start; }
+            .header-nav .btn { width: auto; }
         }
     </style>
 </head>
 <body>
-    <h1>⚙️ Настройка справочников практики</h1>
+    <div class="header-nav">
+        <h1>⚙️ Настройка справочников практики</h1>
+        <a href="generate-apps.html" class="btn btn-success">📄 Перейти к генерации приложений</a>
+    </div>
     
     <div class="info-box" id="debugInfo">Загрузка данных...</div>
 
@@ -423,7 +431,6 @@
                 </div>
             `;
             
-            // Генерация календаря с сентября 2026 по июль 2027
             calendarContainer.innerHTML = '';
             const months = [
                 { year: 2026, month: 9, name: 'Сентябрь 2026' },
@@ -473,8 +480,6 @@
                     dayDiv.textContent = day;
                     
                     const currentDate = new Date(year, month - 1, day);
-                    const currentDateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
-                    
                     const dayEvent = groupCalendar.find(c => {
                         const startDate = parseDate(c.start_date);
                         const endDate = parseDate(c.end_date);

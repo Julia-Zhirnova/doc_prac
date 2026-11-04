@@ -1,46 +1,239 @@
-// Функция для получения данных графика для конкретной группы и типа практики
-async function getScheduleForGroup(group, practiceType) {
-    try {
-        // Загружаем актуальный график из JSON файла
-        const response = await fetch('../data/schedule.json');
-        if (!response.ok) throw new Error('Не удалось загрузить schedule.json');
-        const scheduleData = await response.json();
-        
-        // Ищем запись, совпадающую по группе и типу практики (УП или ПП)
-        // Приводим к нижнему регистру для надежного сравнения
-        const record = scheduleData.find(row => 
-            row.group.trim().toLowerCase() === group.trim().toLowerCase() && 
-            row.type.trim().toLowerCase() === practiceType.trim().toLowerCase()
+document.addEventListener('DOMContentLoaded', () => {
+    const excelInput = document.getElementById('excelFile');
+    const btnDownloadTemplate = document.getElementById('btnDownloadTemplate');
+    const btnGenerate = document.getElementById('btnGenerate');
+    const btnDownloadZip = document.getElementById('btnDownloadZip');
+    const statusLog = document.getElementById('statusLog');
+    const downloadArea = document.getElementById('downloadArea');
+
+    let excelData = [];
+    let generatedZip = null;
+    let refData = { groups: [], calendar: [], modules: [] };
+
+    // 1. Загрузка справочников при старте
+    async function loadRefData() {
+        try {
+            const t = Date.now();
+            refData.groups = await (await fetch(`../data/groups.json?t=${t}`)).json();
+            refData.calendar = await (await fetch(`../data/calendar.json?t=${t}`)).json();
+            refData.modules = await (await fetch(`../data/modules.json?t=${t}`)).json();
+            statusLog.textContent = '✅ Справочники загружены. Готов к работе.';
+            
+            // Создаем кнопку генерации динамически, так как она зависит от данных
+            if (!document.getElementById('btnGenerate')) {
+                const btn = document.createElement('button');
+                btn.id = 'btnGenerate';
+                btn.className = 'btn btn-primary';
+                btn.textContent = '⚙️ Сгенерировать приложения';
+                btn.disabled = true;
+                statusLog.parentNode.insertBefore(btn, statusLog.nextSibling);
+                btn.addEventListener('click', generateDocuments);
+            }
+        } catch (e) {
+            statusLog.textContent = `❌ Ошибка загрузки справочников: ${e.message}\nУбедитесь, что запущен python3 -m http.server 8000`;
+        }
+    }
+    loadRefData();
+
+    // 2. Генерация шаблона Excel
+    if (btnDownloadTemplate) {
+        btnDownloadTemplate.addEventListener('click', () => {
+            const wb = XLSX.utils.book_new();
+            const headers = [
+                "Группа", "Тип_практики", "ФИО", "Дата рождения", 
+                "названиеПО", "должность_руководительПО", "руководительПО_наставник_полностью", 
+                "телефон_руководительПО_наставник", "ответственныйПО", "ответственныйПО_телефон", 
+                "адресПО", "помещение"
+            ];
+            const example = [
+                "ИС-24", "УП", "Иванов Иван Иванович", "01.01.2008",
+                "ООО Ромашка", "Директор", "Петров Петр Петрович", "89001234567",
+                "Иванов Иван", "89007654321", "г. Москва, ул. Ленина 1", "Офис 1"
+            ];
+            const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+            ws['!cols'] = headers.map(() => ({ wch: 25 }));
+            XLSX.utils.book_append_sheet(wb, ws, "Шаблон");
+            XLSX.writeFile(wb, "Шаблон_для_генерации_приложений.xlsx");
+        });
+    }
+
+    // 3. Чтение Excel
+    excelInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        statusLog.textContent = '⏳ Чтение файла Excel...';
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                excelData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
+                
+                const genBtn = document.getElementById('btnGenerate');
+                if (genBtn) {
+                    genBtn.disabled = false;
+                    statusLog.textContent = `✅ Загружено ${excelData.length} строк. Нажмите "Сгенерировать приложения".`;
+                }
+            } catch (error) {
+                statusLog.textContent = `❌ Ошибка чтения Excel: ${error.message}`;
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    // 4. Вспомогательные функции
+    function getMonthInWords(dateStr) {
+        if (!dateStr) return '____';
+        const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+        const parts = String(dateStr).split('.');
+        if (parts.length >= 2) {
+            const monthIndex = parseInt(parts[1], 10) - 1;
+            return months[monthIndex] || '____';
+        }
+        return '____';
+    }
+
+    function findRefData(groupCode, practiceType) {
+        const group = refData.groups.find(g => g.code.trim().toUpperCase() === groupCode.trim().toUpperCase());
+        const calendarEntry = refData.calendar.find(c => 
+            c.group_code.trim().toUpperCase() === groupCode.trim().toUpperCase() && 
+            c.practice_type.trim().toUpperCase() === practiceType.trim().toUpperCase()
+        );
+        const moduleEntry = refData.modules.find(m => 
+            m.group_code.trim().toUpperCase() === groupCode.trim().toUpperCase() && 
+            m.practice_type.trim().toUpperCase() === practiceType.trim().toUpperCase()
         );
 
-        if (record) {
-            return {
-                modules: record.module, // Теперь здесь строка вида "ПМ.08..., ПМ.13..."
-                d_start: record.d_start,
-                m_start: record.m_start,
-                d_end: record.d_end,
-                m_end: record.m_end,
-                year: record.year,
-                specialty: record.spec,
-                hours: record.hours
-            };
-        }
-
-        // Запасной вариант, если запись не найдена
-        console.warn(`График для ${group} (${practiceType}) не найден в schedule.json`);
-        return {
-            modules: "Модуль не указан в графике",
-            d_start: "__", m_start: "______", d_end: "__", m_end: "______", year: "2026",
-            specialty: "Специальность не указана",
-            hours: "0"
-        };
-    } catch (error) {
-        console.error("Ошибка загрузки расписания:", error);
-        return {
-            modules: "Ошибка загрузки графика",
-            d_start: "__", m_start: "______", d_end: "__", m_end: "______", year: "2026",
-            specialty: "Ошибка",
-            hours: "0"
-        };
+        return { group, calendarEntry, moduleEntry };
     }
-}
+
+    // 5. Основная генерация
+    async function generateDocuments() {
+        if (excelData.length === 0) return;
+        
+        const genBtn = document.getElementById('btnGenerate');
+        genBtn.disabled = true;
+        statusLog.textContent = '⏳ Обработка данных и генерация документов...';
+        downloadArea.classList.add('hidden');
+        generatedZip = new JSZip();
+        let successCount = 0;
+
+        try {
+            const app1Template = await (await fetch('../templates/pp-app1.docx')).arrayBuffer();
+            const app2Template = await (await fetch('../templates/pp-app2.docx')).arrayBuffer();
+
+            // Группируем по организации + группе + типу практики
+            const groupedData = {};
+            excelData.forEach(row => {
+                const groupCode = String(row['Группа'] || '').trim().toUpperCase();
+                const practiceType = String(row['Тип_практики'] || 'ПП').trim().toUpperCase();
+                const orgName = String(row['названиеПО'] || 'Неизвестная организация').trim();
+                const key = `${orgName}|${groupCode}|${practiceType}`;
+
+                if (!groupedData[key]) {
+                    const ref = findRefData(groupCode, practiceType);
+                    groupedData[key] = {
+                        orgName,
+                        groupCode,
+                        practiceType,
+                        ref,
+                        students: []
+                    };
+                }
+
+                groupedData[key].students.push({
+                    fio: String(row['ФИО'] || 'Не указано').trim(),
+                    birthdate: String(row['Дата рождения'] || '__.__.____').trim(),
+                    // Сохраняем данные организации из первой строки группы для подстановки
+                    должность_руководительПО: String(row['должность_руководительПО'] || 'Руководитель').trim(),
+                    руководительПО_наставник_полностью: String(row['руководительПО_наставник_полностью'] || 'Не указано').trim(),
+                    телефон_руководительПО_наставник: String(row['телефон_руководительПО_наставник'] || '').trim(),
+                    ответственныйПО: String(row['ответственныйПО'] || 'Не указано').trim(),
+                    ответственныйПО_телефон: String(row['ответственныйПО_телефон'] || '').trim(),
+                    адресПО: String(row['адресПО'] || 'Адрес не указан').trim(),
+                    помещение: String(row['помещение'] || 'Рабочее место').trim()
+                });
+            });
+
+            for (const [key, data] of Object.entries(groupedData)) {
+                const { orgName, groupCode, practiceType, ref, students } = data;
+                const { group, calendarEntry, moduleEntry } = ref;
+
+                const startDate = calendarEntry ? calendarEntry.start_date : 'дд.мм.гггг';
+                const endDate = calendarEntry ? calendarEntry.end_date : 'дд.мм.гггг';
+                
+                // Формируем данные для шаблона Word
+                const docData = {
+                    модуль: moduleEntry ? `${moduleEntry.pm_code} ${moduleEntry.pm_name}` : 'Модуль не найден в справочнике',
+                    день_начала: startDate.split('.')[0] || '__',
+                    месяц_начала: getMonthInWords(startDate),
+                    день_заверешения: endDate.split('.')[0] || '__',
+                    месяц_заверешения: getMonthInWords(endDate),
+                    год: startDate.split('.')[2] || '2026',
+                    специальность: group ? `${group.spec_code} ${group.spec_name}` : 'Специальность не найдена',
+                    часы: moduleEntry ? moduleEntry.hours : '0',
+                    
+                    руководительОО_первый_полностью: "Жирнова Юлия Витальевна",
+                    телефон_руководительОО_первый: "8-915-059-42-53",
+                    руководительОО_второй_полностью: "Тарджиманян Лия Николаевна",
+                    телефон_руководительОО_второй: "8-915-059-50-47",
+                    
+                    названиеПО: orgName,
+                    должность_наставникПО: students[0].должность_руководительПО,
+                    руководительПО_наставник_полностью: students[0].руководительПО_наставник_полностью,
+                    телефон_руководительПО_наставник: students[0].телефон_руководительПО_наставник,
+                    
+                    ответственныйПО: students[0].ответственныйПО,
+                    ответственныйПО_телефон: students[0].ответственныйПО_телефон,
+                    адресПО: students[0].адресПО,
+                    помещение: students[0].помещение,
+                    
+                    students: students
+                };
+
+                const safeOrgName = orgName.replace(/[^a-zа-яё0-9]/gi, '_').substring(0, 30);
+
+                // Генерация Приложения 1
+                const zip1 = new PizZip(app1Template);
+                const doc1 = new window.docxtemplater(zip1, { paragraphLoop: true, linebreaks: true });
+                doc1.render(docData);
+                generatedZip.file(`Приложение_1_${safeOrgName}_${groupCode}.docx`, doc1.getZip().generate({ type: 'blob' }));
+
+                // Генерация Приложения 2
+                const zip2 = new PizZip(app2Template);
+                const doc2 = new window.docxtemplater(zip2, { paragraphLoop: true, linebreaks: true });
+                doc2.render(docData);
+                generatedZip.file(`Приложение_2_${safeOrgName}_${groupCode}.docx`, doc2.getZip().generate({ type: 'blob' }));
+
+                successCount++;
+            }
+
+            statusLog.textContent = `✅ Успешно сгенерировано документов для ${successCount} организаций/групп. Упаковка ZIP...`;
+            
+            const content = await generatedZip.generateAsync({ type: 'blob' });
+            saveAs(content, `Приложения_к_договору_${new Date().toISOString().slice(0,10)}.zip`);
+            
+            statusLog.textContent = '🎉 Архив успешно скачан!';
+            downloadArea.classList.remove('hidden');
+
+        } catch (error) {
+            console.error(error);
+            statusLog.textContent = `❌ Ошибка генерации: ${error.message}\nПроверьте консоль (F12) и наличие файлов pp-app1.docx / pp-app2.docx в папке templates/`;
+        } finally {
+            genBtn.disabled = false;
+        }
+    }
+
+    // 6. Повторное скачивание ZIP
+    if (btnDownloadZip) {
+        btnDownloadZip.addEventListener('click', () => {
+            if (!generatedZip) return;
+            statusLog.textContent = '⏳ Повторная упаковка и скачивание...';
+            generatedZip.generateAsync({ type: 'blob' }).then((content) => {
+                saveAs(content, `Приложения_к_договору_${new Date().toISOString().slice(0,10)}.zip`);
+                statusLog.textContent = '✅ Архив успешно скачан!';
+            });
+        });
+    }
+});
