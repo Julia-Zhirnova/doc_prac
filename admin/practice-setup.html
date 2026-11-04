@@ -5,607 +5,259 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Настройка справочников практики</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 1600px; margin: 1rem auto; padding: 0 1rem; color: #333; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; color: #333; }
         .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
         .header-nav h1 { margin: 0; font-size: 1.5rem; }
         .tabs { display: flex; gap: 5px; margin-bottom: 1rem; border-bottom: 2px solid #ddd; flex-wrap: wrap; }
-        .tab { padding: 10px 15px; cursor: pointer; background: #ecf0f1; border: 1px solid #ddd; border-bottom: none; border-radius: 5px 5px 0 0; font-weight: bold; font-size: 0.9rem; }
+        .tab { padding: 10px 15px; cursor: pointer; background: #ecf0f1; border: 1px solid #ddd; border-bottom: none; border-radius: 5px 5px 0 0; font-weight: bold; }
         .tab.active { background: #fff; border-bottom: 2px solid #fff; margin-bottom: -2px; color: #2980b9; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; }
-        .btn { padding: 0.6rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-right: 8px; margin-bottom: 8px; text-decoration: none; display: inline-block; }
+        .card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.95rem; font-weight: bold; margin-right: 8px; margin-bottom: 8px; text-decoration: none; display: inline-block; }
         .btn-primary { background: #3498db; color: white; }
         .btn-success { background: #2ecc71; color: white; }
-        .btn-warning { background: #f39c12; color: white; }
-        .btn-danger { background: #e74c3c; color: white; padding: 0.3rem 0.6rem; font-size: 0.8rem; }
         .btn-secondary { background: #95a5a6; color: white; }
         
-        .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1rem; }
+        .table-container { overflow-x: auto; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1rem; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 800px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
-        th { background: #ecf0f1; cursor: pointer; user-select: none; white-space: nowrap; }
-        th:hover { background: #d5dbdb; }
-        th.sort-asc::after { content: " ▲"; font-size: 0.8em; }
-        th.sort-desc::after { content: " ▼"; font-size: 0.8em; }
+        th { background: #ecf0f1; }
+        tr:hover { background: #f1f8ff; cursor: pointer; }
+        tr.selected { background: #d4edda; }
         
-        td[contenteditable="true"] { background: #fff; cursor: text; }
-        td[contenteditable="true"]:focus { outline: 2px solid #3498db; background: #f0f8ff; }
-        td[contenteditable="false"] { background: #f4f6f7; color: #7f8c8d; cursor: not-allowed; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        .form-group { margin-bottom: 0.5rem; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 0.3rem; font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .form-group .hint { font-size: 0.8rem; color: #666; margin-top: 0.2rem; }
         
-        .info-box { background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; line-height: 1.5; }
-        
-        .modules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
-        .semester-column { background: #fff; border: 2px solid #3498db; border-radius: 8px; padding: 1rem; }
-        .semester-column h3 { margin-top: 0; color: #fff; text-align: center; background: #3498db; padding: 0.5rem; border-radius: 4px; }
-        .module-card { background: #f8f9fa; border-left: 4px solid #3498db; padding: 0.8rem; margin-bottom: 0.8rem; border-radius: 4px; }
-        .module-practice { font-weight: bold; color: #e67e22; font-size: 1.1rem; margin-bottom: 0.3rem; }
-        .module-pm { font-weight: bold; color: #2c3e50; margin-bottom: 0.3rem; }
-        .module-group { font-size: 0.8rem; color: #7f8c8d; margin-bottom: 0.3rem; }
-        .module-mdk-list { margin: 0.3rem 0; padding-left: 1rem; }
-        .module-mdk-item { margin-bottom: 0.2rem; font-size: 0.85rem; color: #555; }
-        .module-hours { display: inline-block; background: #3498db; color: white; padding: 0.2rem 0.5rem; border-radius: 3px; font-size: 0.8rem; margin-top: 0.3rem; }
-        
-        .summary-calendar-layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.5rem; }
-        .group-selector { background: #fff; border: 2px solid #3498db; border-radius: 8px; padding: 1rem; }
-        .group-selector select { width: 100%; padding: 0.5rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; }
-        .summary-card { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 0.8rem; margin-bottom: 0.5rem; }
-        .summary-item { display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px solid #ecf0f1; font-size: 0.9rem; }
-        .summary-item:last-child { border-bottom: none; font-weight: bold; color: #2980b9; }
-        
-        .calendar-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-        .calendar-month { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0.8rem; }
-        .calendar-month h4 { margin: 0 0 0.5rem 0; text-align: center; color: #2c3e50; font-size: 1rem; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; text-align: center; font-size: 0.75rem; }
-        .calendar-day-header { font-weight: bold; color: #7f8c8d; padding: 0.2rem; font-size: 0.7rem; }
-        .calendar-day { padding: 0.3rem; border-radius: 3px; min-height: 20px; display: flex; align-items: center; justify-content: center; }
-        .calendar-day.up { background: #f1c40f; color: #000; font-weight: bold; }
-        .calendar-day.pp { background: #e67e22; color: #fff; font-weight: bold; }
-        .calendar-day.exam { background: #2ecc71; color: #fff; font-weight: bold; }
-        .calendar-day.holiday { background: #3498db; color: #fff; }
-        .calendar-day.empty { visibility: hidden; }
-        
-        .calendar-legend { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; font-size: 0.85rem; }
-        .legend-item { display: flex; align-items: center; gap: 0.5rem; }
-        .legend-color { width: 20px; height: 20px; border-radius: 3px; }
-        .legend-up { background: #f1c40f; }
-        .legend-pp { background: #e67e22; }
-        .legend-exam { background: #2ecc71; }
-        .legend-holiday { background: #3498db; }
-        
-        .filter-row { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
-        .filter-select { padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; min-width: 150px; }
-        
-        @media (max-width: 768px) {
-            body { margin: 0.5rem auto; padding: 0 0.5rem; }
-            .btn { width: 100%; margin-right: 0; }
-            .tab { flex: 1; text-align: center; }
-            .modules-grid { grid-template-columns: 1fr; }
-            .summary-calendar-layout { grid-template-columns: 1fr; }
-            .calendar-container { grid-template-columns: 1fr; }
-            .header-nav { flex-direction: column; align-items: flex-start; }
-            .header-nav .btn { width: auto; }
-        }
+        .log-box { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 4px; font-family: monospace; white-space: pre-wrap; font-size: 0.9rem; margin-top: 1rem; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="header-nav">
-        <h1>⚙️ Настройка справочников практики</h1>
-        <a href="generate-apps.html" class="btn btn-success">📄 Перейти к генерации приложений</a>
+        <h1>⚙️ Настройка справочников</h1>
+        <a href="generate-apps.html" class="btn btn-secondary">📄 Перейти к генерации из Excel</a>
     </div>
-    
-    <div class="info-box" id="debugInfo">Загрузка данных...</div>
 
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('groups')">1. Группы</div>
-        <div class="tab" onclick="switchTab('calendar')">2. КУГ (Даты)</div>
-        <div class="tab" onclick="switchTab('modules')">3. Модули</div>
-        <div class="tab" onclick="switchTab('summary')">4. Сводка и календарь</div>
+        <div class="tab active" onclick="switchTab('modules')">Модули и генерация</div>
     </div>
 
-    <!-- Вкладка 1: Группы -->
-    <div id="groups" class="tab-content active">
+    <div id="modules" class="tab-content active">
         <div class="card">
+            <h2>1. Выберите практики для генерации</h2>
             <div style="margin-bottom: 1rem;">
-                <button class="btn btn-warning" onclick="addRow('groups')">➕ Добавить группу</button>
-                <button class="btn btn-success" onclick="downloadJSON('groups', 'groups.json')">💾 Скачать groups.json</button>
+                <button class="btn btn-secondary" onclick="selectAll(true)">Выбрать все показанные</button>
+                <button class="btn btn-secondary" onclick="selectAll(false)">Снять выделение</button>
             </div>
             <div class="table-container">
-                <table id="table-groups">
-                    <thead><tr>
-                        <th>Код группы</th><th>Код спец.</th><th>Название специальности</th><th>Квалификация</th><th>Курс</th><th style="width:50px"></th>
-                    </tr></thead>
-                    <tbody></tbody>
+                <table id="modulesTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">✓</th>
+                            <th>Группа</th>
+                            <th>Сем.</th>
+                            <th>Тип</th>
+                            <th>Модуль (ПМ)</th>
+                            <th>МДК</th>
+                            <th>Часы</th>
+                            <th>Период (из КУГ)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modulesBody"></tbody>
                 </table>
             </div>
+            <p id="selectionCount" style="font-weight: bold; color: #2980b9;">Выбрано: 0</p>
+        </div>
+
+        <div class="card hidden" id="orgDataCard">
+            <h2>2. Данные организации</h2>
+            <div class="form-grid" id="orgForm"></div>
+            
+            <details style="margin-top: 1.5rem; padding: 1rem; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+                <summary style="font-weight: bold; cursor: pointer;">Руководители от техникума (нажмите, чтобы изменить)</summary>
+                <div class="form-grid" id="ooForm" style="margin-top: 1rem;"></div>
+            </details>
+
+            <div style="margin-top: 1.5rem;">
+                <button id="btnGenerateSetup" class="btn btn-success">📦 Сформировать приложения (ZIP)</button>
+            </div>
+            <div id="setupLog" class="log-box hidden"></div>
         </div>
     </div>
 
-    <!-- Вкладка 2: КУГ -->
-    <div id="calendar" class="tab-content">
-        <div class="card">
-            <div style="margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-                <button class="btn btn-warning" onclick="addRow('calendar')">➕ Добавить период</button>
-                <button class="btn btn-success" onclick="downloadJSON('calendar', 'calendar.json')">💾 Скачать calendar.json</button>
-            </div>
-            <div class="filter-row">
-                <select id="filterGroup" class="filter-select" onchange="applyFilters()">
-                    <option value="">Все группы</option>
-                </select>
-                <select id="filterType" class="filter-select" onchange="applyFilters()">
-                    <option value="">Все типы</option>
-                    <option value="УП">Учебная практика (УП)</option>
-                    <option value="ПП">Производственная практика (ПП)</option>
-                    <option value="Экзамен">Экзамен</option>
-                    <option value="Каникулы">Каникулы</option>
-                </select>
-                <select id="filterSemester" class="filter-select" onchange="applyFilters()">
-                    <option value="">Все семестры</option>
-                    <option value="all-autumn">Все осенние семестры</option>
-                    <option value="all-spring">Все весенние семестры</option>
-                    <option value="1">1 семестр (осень)</option>
-                    <option value="2">2 семестр (весна)</option>
-                    <option value="3">3 семестр (осень)</option>
-                    <option value="4">4 семестр (весна)</option>
-                    <option value="5">5 семестр (осень)</option>
-                    <option value="6">6 семестр (весна)</option>
-                    <option value="7">7 семестр (осень)</option>
-                    <option value="8">8 семестр (весна)</option>
-                </select>
-                <button class="btn btn-primary" onclick="resetFilters()">Сбросить фильтры</button>
-            </div>
-            <div class="table-container">
-                <table id="table-calendar">
-                    <thead><tr>
-                        <th>Группа</th><th>Семестр</th><th>Тип</th><th>Дата начала</th><th>Дата окончания</th><th style="width:50px"></th>
-                    </tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Вкладка 3: Модули -->
-    <div id="modules" class="tab-content">
-        <div class="card">
-            <div style="margin-bottom: 1rem;">
-                <button class="btn btn-warning" onclick="addRow('modules')">➕ Добавить модуль</button>
-                <button class="btn btn-success" onclick="downloadJSON('modules', 'modules.json')">💾 Скачать modules.json</button>
-            </div>
-            <div class="filter-row">
-                <select id="filterModuleGroup" class="filter-select" onchange="applyModuleFilters()">
-                    <option value="">Все группы</option>
-                </select>
-                <select id="filterModuleSemester" class="filter-select" onchange="applyModuleFilters()">
-                    <option value="">Все семестры</option>
-                    <option value="all-autumn">Все осенние семестры</option>
-                    <option value="all-spring">Все весенние семестры</option>
-                    <option value="1">1 семестр (осень)</option>
-                    <option value="2">2 семестр (весна)</option>
-                    <option value="3">3 семестр (осень)</option>
-                    <option value="4">4 семестр (весна)</option>
-                    <option value="5">5 семестр (осень)</option>
-                    <option value="6">6 семестр (весна)</option>
-                    <option value="7">7 семестр (осень)</option>
-                    <option value="8">8 семестр (весна)</option>
-                </select>
-                <select id="filterPracticeType" class="filter-select" onchange="applyModuleFilters()">
-                    <option value="">Все типы</option>
-                    <option value="УП">УП</option>
-                    <option value="ПП">ПП</option>
-                </select>
-                <button class="btn btn-primary" onclick="resetModuleFilters()">Сбросить фильтры</button>
-            </div>
-            <div class="modules-grid">
-                <div class="semester-column">
-                    <h3>1 семестр (осень)</h3>
-                    <div id="autumnModules"></div>
-                </div>
-                <div class="semester-column">
-                    <h3>2 семестр (весна)</h3>
-                    <div id="springModules"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Вкладка 4: Сводка и календарь -->
-    <div id="summary" class="tab-content">
-        <div class="card">
-            <div class="summary-calendar-layout">
-                <div class="group-selector">
-                    <h3>Выберите группу</h3>
-                    <select id="selectedGroup" onchange="renderSummaryAndCalendar()">
-                        <option value="">-- Выберите группу --</option>
-                    </select>
-                    <div id="summaryContainer"></div>
-                </div>
-                <div>
-                    <h3>Календарь практик (сентябрь 2026 - июль 2027)</h3>
-                    <div class="calendar-legend">
-                        <div class="legend-item"><div class="legend-color legend-up"></div><span>Учебная практика (УП)</span></div>
-                        <div class="legend-item"><div class="legend-color legend-pp"></div><span>Производственная практика (ПП)</span></div>
-                        <div class="legend-item"><div class="legend-color legend-exam"></div><span>Экзамены</span></div>
-                        <div class="legend-item"><div class="legend-color legend-holiday"></div><span>Каникулы</span></div>
-                    </div>
-                    <div id="calendarContainer" class="calendar-container"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <!-- Библиотеки -->
+    <script src="../vendor/pizzip.min.js"></script>
+    <script src="../vendor/docxtemplater.js"></script>
+    <script src="../vendor/jszip.min.js"></script>
+    <script src="../vendor/FileSaver.min.js"></script>
+    
+    <!-- Логика -->
+    <script src="../assets/js/services/apps-generator.js"></script>
     <script>
-        let data = { groups: [], calendar: [], modules: [] };
-        let filterState = { group: '', type: '', semester: '' };
-        let moduleFilterState = { group: '', semester: '', practiceType: '' };
+        const G = window.AppsGenerator;
+        let refData = { groups: [], calendar: [], modules: [] };
+        let selectedModules = new Set();
 
         async function loadData() {
             try {
                 const t = Date.now();
-                data.groups = await (await fetch(`../data/groups.json?t=${t}`)).json();
-                data.calendar = await (await fetch(`../data/calendar.json?t=${t}`)).json();
-                data.modules = await (await fetch(`../data/modules.json?t=${t}`)).json();
-                updateDebugInfo();
-                renderAll();
-                populateGroupSelectors();
+                const get = async (name) => (await fetch(`../data/${name}.json?t=${t}`)).json();
+                refData.groups = await get('groups');
+                refData.calendar = await get('calendar');
+                refData.modules = await get('modules');
+                renderModulesTable();
+                renderOrgForm();
             } catch (e) {
-                document.getElementById('debugInfo').innerHTML = `❌ Ошибка: ${e.message}`;
+                alert('Ошибка загрузки справочников. Убедитесь, что запущен python3 -m http.server 8000');
             }
-        }
-
-        function updateDebugInfo() {
-            document.getElementById('debugInfo').innerHTML = `
-                <b>Загружено данных:</b><br>
-                • Групп: ${data.groups.length}<br>
-                • Записей КУГ: ${data.calendar.length}<br>
-                • Модулей: ${data.modules.length}
-            `;
-        }
-
-        function populateGroupSelectors() {
-            const groupSelect = document.getElementById('selectedGroup');
-            const filterGroup = document.getElementById('filterGroup');
-            const filterModuleGroup = document.getElementById('filterModuleGroup');
-            
-            const groups = [...new Set(data.groups.map(g => g.code))].sort();
-            
-            groupSelect.innerHTML = '<option value="">-- Выберите группу --</option>';
-            filterGroup.innerHTML = '<option value="">Все группы</option>';
-            filterModuleGroup.innerHTML = '<option value="">Все группы</option>';
-            
-            groups.forEach(g => {
-                groupSelect.innerHTML += `<option value="${g}">${g}</option>`;
-                filterGroup.innerHTML += `<option value="${g}">${g}</option>`;
-                filterModuleGroup.innerHTML += `<option value="${g}">${g}</option>`;
-            });
-        }
-
-        function renderAll() {
-            renderGroupsTable();
-            renderCalendarTable();
-            renderModulesTable();
-            renderSummaryAndCalendar();
-        }
-
-        function renderGroupsTable() {
-            const tbody = document.querySelector('#table-groups tbody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            data.groups.forEach((row, idx) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td contenteditable="true" data-idx="${idx}" data-field="code">${row.code || ''}</td>
-                    <td contenteditable="true" data-idx="${idx}" data-field="spec_code">${row.spec_code || ''}</td>
-                    <td contenteditable="true" data-idx="${idx}" data-field="spec_name">${row.spec_name || ''}</td>
-                    <td contenteditable="true" data-idx="${idx}" data-field="qualification">${row.qualification || ''}</td>
-                    <td contenteditable="true" data-idx="${idx}" data-field="course">${row.course || ''}</td>
-                    <td style="text-align:center;"><button class="btn btn-danger" onclick="deleteRow('groups', ${idx})">🗑</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-            tbody.addEventListener('input', (e) => {
-                if (e.target.tagName === 'TD' && e.target.isContentEditable) {
-                    data.groups[e.target.dataset.idx][e.target.dataset.field] = e.target.textContent.trim();
-                }
-            });
-        }
-
-        function renderCalendarTable() {
-            const tbody = document.querySelector('#table-calendar tbody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            
-            let displayData = data.calendar.filter(row => {
-                const matchGroup = !filterState.group || row.group_code.toLowerCase() === filterState.group.toLowerCase();
-                const matchType = !filterState.type || row.practice_type === filterState.type;
-                let matchSemester = true;
-                if (filterState.semester === 'all-autumn') matchSemester = [1, 3, 5, 7].includes(parseInt(row.semester));
-                else if (filterState.semester === 'all-spring') matchSemester = [2, 4, 6, 8].includes(parseInt(row.semester));
-                else if (filterState.semester) matchSemester = String(row.semester) === filterState.semester;
-                return matchGroup && matchType && matchSemester;
-            });
-
-            displayData.forEach((row) => {
-                const originalIdx = data.calendar.indexOf(row);
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td contenteditable="false">${row.group_code}</td>
-                    <td contenteditable="false">${row.semester || '-'}</td>
-                    <td contenteditable="false">${row.practice_type}</td>
-                    <td contenteditable="true" data-idx="${originalIdx}" data-field="start_date">${row.start_date}</td>
-                    <td contenteditable="true" data-idx="${originalIdx}" data-field="end_date">${row.end_date}</td>
-                    <td style="text-align:center;"><button class="btn btn-danger" onclick="deleteRow('calendar', ${originalIdx})">🗑</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            tbody.addEventListener('input', (e) => {
-                if (e.target.tagName === 'TD' && e.target.isContentEditable) {
-                    data.calendar[e.target.dataset.idx][e.target.dataset.field] = e.target.textContent.trim();
-                }
-            });
         }
 
         function renderModulesTable() {
-            const autumnDiv = document.getElementById('autumnModules');
-            const springDiv = document.getElementById('springModules');
-            if (!autumnDiv || !springDiv) return;
-            
-            autumnDiv.innerHTML = '';
-            springDiv.innerHTML = '';
-            
-            let filteredModules = data.modules.filter(module => {
-                const matchGroup = !moduleFilterState.group || module.group_code.toLowerCase() === moduleFilterState.group.toLowerCase();
-                let matchSemester = true;
-                if (moduleFilterState.semester === 'all-autumn') matchSemester = [1, 3, 5, 7].includes(parseInt(module.semester));
-                else if (moduleFilterState.semester === 'all-spring') matchSemester = [2, 4, 6, 8].includes(parseInt(module.semester));
-                else if (moduleFilterState.semester) matchSemester = String(module.semester) === moduleFilterState.semester;
-                const matchPracticeType = !moduleFilterState.practiceType || module.practice_type === moduleFilterState.practiceType;
-                return matchGroup && matchSemester && matchPracticeType;
-            });
-            
-            filteredModules.forEach(module => {
-                const mdkList = module.mdk.split('\n').filter(m => m.trim());
-                const mdkHtml = mdkList.map(m => `<div class="module-mdk-item">${m.trim()}</div>`).join('');
+            const tbody = document.getElementById('modulesBody');
+            tbody.innerHTML = '';
+            refData.modules.forEach((m, idx) => {
+                const cal = G.findCalendar(refData.calendar, m.group_code, m.semester, m.practice_type);
+                const period = cal ? `${cal.start_date} – ${cal.end_date}` : 'Период не найден';
                 
-                const cardHtml = `
-                    <div class="module-card">
-                        <div class="module-practice">${module.practice_type}.${module.pm_code.split('.')[1] || ''}</div>
-                        <div class="module-pm">${module.pm_code} ${module.pm_name}</div>
-                        <div class="module-group">Группа: ${module.group_code} | Семестр: ${module.semester}</div>
-                        <div class="module-mdk-list">${mdkHtml}</div>
-                        <span class="module-hours">${module.hours} ч</span>
-                    </div>
+                const tr = document.createElement('tr');
+                tr.dataset.idx = idx;
+                tr.dataset.key = `${m.group_code}|${m.semester}|${m.practice_type}`;
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="row-check" ${selectedModules.has(idx) ? 'checked' : ''}></td>
+                    <td>${m.group_code}</td>
+                    <td>${m.semester}</td>
+                    <td>${m.practice_type}</td>
+                    <td><b>${m.pm_code}</b><br>${m.pm_name}</td>
+                    <td>${m.mdk}</td>
+                    <td>${m.hours}</td>
+                    <td>${period}</td>
                 `;
-                
-                if ([1, 3, 5, 7].includes(parseInt(module.semester))) {
-                    autumnDiv.innerHTML += cardHtml;
-                } else {
-                    springDiv.innerHTML += cardHtml;
-                }
-            });
-            
-            if (autumnDiv.innerHTML === '') autumnDiv.innerHTML = '<p style="text-align:center; color:#999;">Нет модулей</p>';
-            if (springDiv.innerHTML === '') springDiv.innerHTML = '<p style="text-align:center; color:#999;">Нет модулей</p>';
-        }
-
-        function renderSummaryAndCalendar() {
-            const selectedGroup = document.getElementById('selectedGroup').value;
-            const summaryContainer = document.getElementById('summaryContainer');
-            const calendarContainer = document.getElementById('calendarContainer');
-            
-            if (!selectedGroup) {
-                summaryContainer.innerHTML = '<p style="color:#999;">Выберите группу</p>';
-                calendarContainer.innerHTML = '';
-                return;
-            }
-            
-            const groupModules = data.modules.filter(m => m.group_code === selectedGroup);
-            let upAutumn = 0, upSpring = 0, ppAutumn = 0, ppSpring = 0;
-            
-            groupModules.forEach(m => {
-                const semester = parseInt(m.semester) || 0;
-                const hours = parseInt(m.hours) || 0;
-                if (m.practice_type === 'УП') {
-                    if ([1, 3, 5, 7].includes(semester)) upAutumn += hours;
-                    else upSpring += hours;
-                } else if (m.practice_type === 'ПП') {
-                    if ([1, 3, 5, 7].includes(semester)) ppAutumn += hours;
-                    else ppSpring += hours;
-                }
-            });
-            
-            const totalUp = upAutumn + upSpring;
-            const totalPp = ppAutumn + ppSpring;
-            const totalHours = totalUp + totalPp;
-            
-            summaryContainer.innerHTML = `
-                <div class="summary-card">
-                    <div class="summary-item"><span>УП (осень):</span><span>${upAutumn} ч</span></div>
-                    <div class="summary-item"><span>УП (весна):</span><span>${upSpring} ч</span></div>
-                    <div class="summary-item"><span>ПП (осень):</span><span>${ppAutumn} ч</span></div>
-                    <div class="summary-item"><span>ПП (весна):</span><span>${ppSpring} ч</span></div>
-                    <div class="summary-item"><span>Всего УП за год:</span><span>${totalUp} ч</span></div>
-                    <div class="summary-item"><span>Всего ПП за год:</span><span>${totalPp} ч</span></div>
-                    <div class="summary-item"><span>Всего часов практики:</span><span>${totalHours} ч</span></div>
-                </div>
-            `;
-            
-            calendarContainer.innerHTML = '';
-            const months = [
-                { year: 2026, month: 9, name: 'Сентябрь 2026' },
-                { year: 2026, month: 10, name: 'Октябрь 2026' },
-                { year: 2026, month: 11, name: 'Ноябрь 2026' },
-                { year: 2026, month: 12, name: 'Декабрь 2026' },
-                { year: 2027, month: 1, name: 'Январь 2027' },
-                { year: 2027, month: 2, name: 'Февраль 2027' },
-                { year: 2027, month: 3, name: 'Март 2027' },
-                { year: 2027, month: 4, name: 'Апрель 2027' },
-                { year: 2027, month: 5, name: 'Май 2027' },
-                { year: 2027, month: 6, name: 'Июнь 2027' },
-                { year: 2027, month: 7, name: 'Июль 2027' }
-            ];
-            
-            const groupCalendar = data.calendar.filter(c => c.group_code === selectedGroup);
-            
-            months.forEach(({ year, month, name }) => {
-                const monthDiv = document.createElement('div');
-                monthDiv.className = 'calendar-month';
-                monthDiv.innerHTML = `<h4>${name}</h4>`;
-                
-                const grid = document.createElement('div');
-                grid.className = 'calendar-grid';
-                
-                const dayHeaders = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-                dayHeaders.forEach(header => {
-                    const headerDiv = document.createElement('div');
-                    headerDiv.className = 'calendar-day-header';
-                    headerDiv.textContent = header;
-                    grid.appendChild(headerDiv);
-                });
-                
-                const firstDay = new Date(year, month - 1, 1).getDay();
-                const daysInMonth = new Date(year, month, 0).getDate();
-                const offset = firstDay === 0 ? 6 : firstDay - 1;
-                
-                for (let i = 0; i < offset; i++) {
-                    const emptyDiv = document.createElement('div');
-                    emptyDiv.className = 'calendar-day empty';
-                    grid.appendChild(emptyDiv);
-                }
-                
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const dayDiv = document.createElement('div');
-                    dayDiv.className = 'calendar-day';
-                    dayDiv.textContent = day;
-                    
-                    const currentDate = new Date(year, month - 1, day);
-                    const dayEvent = groupCalendar.find(c => {
-                        const startDate = parseDate(c.start_date);
-                        const endDate = parseDate(c.end_date);
-                        return currentDate >= startDate && currentDate <= endDate;
-                    });
-                    
-                    if (dayEvent) {
-                        if (dayEvent.practice_type === 'УП') dayDiv.classList.add('up');
-                        else if (dayEvent.practice_type === 'ПП') dayDiv.classList.add('pp');
-                        else if (dayEvent.practice_type === 'Экзамен') dayDiv.classList.add('exam');
-                        else if (dayEvent.practice_type === 'Каникулы') dayDiv.classList.add('holiday');
-                        dayDiv.title = `${dayEvent.practice_type} (${dayEvent.start_date} - ${dayEvent.end_date})`;
+                tr.addEventListener('click', (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        const cb = tr.querySelector('.row-check');
+                        cb.checked = !cb.checked;
                     }
-                    
-                    grid.appendChild(dayDiv);
-                }
-                
-                monthDiv.appendChild(grid);
-                calendarContainer.appendChild(monthDiv);
+                    updateSelection();
+                });
+                tr.querySelector('.row-check').addEventListener('change', updateSelection);
+                tbody.appendChild(tr);
             });
+            updateSelection();
         }
 
-        function parseDate(dateStr) {
-            const parts = dateStr.split('.');
-            return new Date(parts[2], parts[1] - 1, parts[0]);
+        function updateSelection() {
+            selectedModules.clear();
+            let count = 0;
+            document.querySelectorAll('#modulesBody tr').forEach(tr => {
+                const cb = tr.querySelector('.row-check');
+                if (cb.checked) {
+                    selectedModules.add(parseInt(tr.dataset.idx));
+                    tr.classList.add('selected');
+                    count++;
+                } else {
+                    tr.classList.remove('selected');
+                }
+            });
+            document.getElementById('selectionCount').textContent = `Выбрано: ${count}`;
+            document.getElementById('orgDataCard').classList.toggle('hidden', count === 0);
         }
 
-        function applyFilters() {
-            filterState.group = document.getElementById('filterGroup').value;
-            filterState.type = document.getElementById('filterType').value;
-            filterState.semester = document.getElementById('filterSemester').value;
-            renderCalendarTable();
+        function selectAll(state) {
+            document.querySelectorAll('.row-check').forEach(cb => cb.checked = state);
+            updateSelection();
         }
 
-        function applyModuleFilters() {
-            moduleFilterState.group = document.getElementById('filterModuleGroup').value;
-            moduleFilterState.semester = document.getElementById('filterModuleSemester').value;
-            moduleFilterState.practiceType = document.getElementById('filterPracticeType').value;
-            renderModulesTable();
+        function renderOrgForm() {
+            const orgContainer = document.getElementById('orgForm');
+            orgContainer.innerHTML = G.ORG_FIELDS.map(f => `
+                <div class="form-group">
+                    <label>${f.label} ${f.required ? '*' : ''}</label>
+                    <input type="text" id="org_${f.key}" placeholder="${f.placeholder || ''}">
+                    <div class="hint">${f.hint}</div>
+                </div>
+            `).join('');
+
+            const ooContainer = document.getElementById('ooForm');
+            ooContainer.innerHTML = G.OO_FIELDS.map(f => `
+                <div class="form-group">
+                    <label>${f.label}</label>
+                    <input type="text" id="oo_${f.key}" value="${G.DEFAULT_OO[f.key] || ''}">
+                    <div class="hint">${f.hint}</div>
+                </div>
+            `).join('');
         }
 
-        function resetFilters() {
-            filterState = { group: '', type: '', semester: '' };
-            document.getElementById('filterGroup').value = '';
-            document.getElementById('filterType').value = '';
-            document.getElementById('filterSemester').value = '';
-            renderCalendarTable();
+        function getOrgData() {
+            const data = {};
+            G.ORG_FIELDS.forEach(f => {
+                data[f.key] = document.getElementById(`org_${f.key}`).value;
+            });
+            const oo = {};
+            G.OO_FIELDS.forEach(f => {
+                oo[f.key] = document.getElementById(`oo_${f.key}`).value;
+            });
+            return { org: data, oo: oo };
         }
 
-        function resetModuleFilters() {
-            moduleFilterState = { group: '', semester: '', practiceType: '' };
-            document.getElementById('filterModuleGroup').value = '';
-            document.getElementById('filterModuleSemester').value = '';
-            document.getElementById('filterPracticeType').value = '';
-            renderModulesTable();
-        }
+        document.getElementById('btnGenerateSetup').addEventListener('click', async () => {
+            const log = document.getElementById('setupLog');
+            log.classList.remove('hidden');
+            log.textContent = '⏳ Загрузка шаблонов и генерация...';
+            
+            try {
+                const tpl = await G.loadTemplates('../templates/');
+                const { org, oo } = getOrgData();
+                const zip = new JSZip();
+                let count = 0;
 
-        function addRow(type) {
-            if (type === 'groups') {
-                data.groups.push({ code: "Новая", spec_code: "00.00.00", spec_name: "Специальность", qualification: "Квалификация", course: 1 });
-            } else if (type === 'calendar') {
-                const group = prompt("Введите код группы:");
-                if (!group) return;
-                const pType = prompt("Введите тип (УП/ПП/Экзамен/Каникулы):");
-                if (!pType) return;
-                const semester = prompt("Введите номер семестра (1-8):");
-                data.calendar.push({
-                    id: "c" + Date.now(),
-                    group_code: group.trim().toUpperCase(),
-                    semester: semester ? parseInt(semester) : null,
-                    practice_type: pType.trim(),
-                    start_date: "дд.мм.гггг",
-                    end_date: "дд.мм.гггг"
+                // Группируем выбранные модули по группе/семестру/типу
+                const grouped = {};
+                selectedModules.forEach(idx => {
+                    const m = refData.modules[idx];
+                    const key = `${m.group_code}|${m.semester}|${m.practice_type}`;
+                    if (!grouped[key]) {
+                        grouped[key] = { group: m.group_code, semester: m.semester, type: m.practice_type, modules: [] };
+                    }
+                    grouped[key].modules.push(m);
                 });
-            } else if (type === 'modules') {
-                const group = prompt("Введите код группы:");
-                if (!group) return;
-                const semester = prompt("Введите номер семестра (1-8):");
-                const pType = prompt("Введите тип (УП/ПП):");
-                if (!pType) return;
-                const pmCode = prompt("Введите код ПМ (например, ПМ.08):");
-                data.modules.push({
-                    id: "m" + Date.now(),
-                    group_code: group.trim().toUpperCase(),
-                    semester: semester ? parseInt(semester) : null,
-                    practice_type: pType.trim(),
-                    pm_code: pmCode || "ПМ.00",
-                    pm_name: "Название модуля",
-                    mdk: "МДК.00.01",
-                    hours: 0
-                });
+
+                for (const g of Object.values(grouped)) {
+                    const groupData = G.findGroup(refData.groups, g.group);
+                    const calData = G.findCalendar(refData.calendar, g.group, g.semester, g.type);
+                    
+                    const docData = G.buildDocData({
+                        group: groupData,
+                        calendar: calData,
+                        modules: g.modules,
+                        org: org,
+                        oo: oo,
+                        students: [] // Пустой массив, так как таблица в шаблоне пока без цикла
+                    });
+
+                    const base = `${g.group}_${g.type}_сем${g.semester}`;
+                    zip.file(`Приложение_1_${base}.docx`, G.renderTemplate(tpl.app1, docData));
+                    zip.file(`Приложение_2_${base}.docx`, G.renderTemplate(tpl.app2, docData));
+                    count++;
+                }
+
+                const content = await zip.generateAsync({ type: 'blob' });
+                saveAs(content, `Приложения_выборочные_${new Date().toISOString().slice(0,10)}.zip`);
+                log.textContent = `✅ Успешно! Сформировано комплектов: ${count}. Архив скачан.`;
+            } catch (error) {
+                console.error(error);
+                log.textContent = `❌ Ошибка: ${G.explainError(error)}`;
             }
-            updateDebugInfo();
-            renderAll();
-            populateGroupSelectors();
-        }
+        });
 
-        function deleteRow(type, idx) {
-            if (confirm('Удалить эту строку?')) {
-                data[type].splice(idx, 1);
-                updateDebugInfo();
-                renderAll();
-                populateGroupSelectors();
-            }
-        }
-
-        function downloadJSON(type, filename) {
-            const jsonStr = JSON.stringify(data[type], null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            alert(`✅ Файл ${filename} скачан!\n\n📂 ИНСТРУКЦИЯ:\n1. Откройте папку проекта.\n2. Перейдите в data/.\n3. Замените старый файл ${filename} на новый.`);
-        }
-
-        function switchTab(tabId) {
+        function switchTab(id) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             event.target.classList.add('active');
-            document.getElementById(tabId).classList.add('active');
-            if (tabId === 'summary') renderSummaryAndCalendar();
+            document.getElementById(id).classList.add('active');
         }
 
         loadData();

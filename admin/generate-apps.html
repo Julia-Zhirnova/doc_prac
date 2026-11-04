@@ -9,7 +9,7 @@
         .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
         .header-nav h1 { margin: 0; font-size: 1.5rem; }
         .card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
-        h1, h2 { color: #2c3e50; }
+        h2 { color: #2c3e50; margin-top: 0; }
         .form-group { margin-bottom: 1rem; }
         label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
         input[type="file"] { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
@@ -20,7 +20,6 @@
         .btn-secondary { background: #95a5a6; color: white; margin-bottom: 1rem; }
         .log-box { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 4px; font-family: monospace; min-height: 60px; white-space: pre-wrap; font-size: 0.9rem; }
         .hidden { display: none; }
-        
         @media (max-width: 768px) {
             .header-nav { flex-direction: column; align-items: flex-start; }
             .header-nav .btn { width: 100%; margin-right: 0; }
@@ -29,18 +28,17 @@
 </head>
 <body>
     <div class="header-nav">
-        <h1>📄 Генерация приложений к договору</h1>
+        <h1>📄 Генерация приложений (Excel)</h1>
         <a href="practice-setup.html" class="btn btn-secondary">⚙️ Перейти к настройке справочников</a>
     </div>
     
     <div class="card">
         <h2>1. Подготовка данных</h2>
-        <button id="btnDownloadTemplate" class="btn btn-secondary">⬇ Скачать новый шаблон Excel</button>
+        <button id="btnDownloadTemplate" class="btn btn-secondary">⬇ Скачать шаблон Excel с подсказками</button>
         <p style="font-size: 0.9rem; color: #666;">
-            <b>Важно:</b> В новом шаблоне достаточно указать <b>Группу</b> и <b>Тип_практики</b> (УП или ПП). 
+            <b>Важно:</b> В шаблоне достаточно указать <b>Группу</b>, <b>Тип_практики</b> и <b>Семестр</b>. 
             Даты, модули и специальности система подставит <b>автоматически</b> из справочников!
         </p>
-        
         <div class="form-group">
             <label for="excelFile">Выберите заполненный файл Excel (.xlsx):</label>
             <input type="file" id="excelFile" accept=".xlsx, .xls">
@@ -50,8 +48,9 @@
     <div class="card">
         <h2>2. Генерация</h2>
         <div id="statusLog" class="log-box">⏳ Загрузка справочников...</div>
+        <button id="btnGenerate" class="btn btn-primary" disabled>⚙️ Сгенерировать приложения</button>
         <div id="downloadArea" class="hidden">
-            <p style="color: #27ae60; font-weight: bold;">✅ Генерация завершена успешно!</p>
+            <p style="color: #27ae60; font-weight: bold; margin-top: 1rem;">✅ Генерация завершена успешно!</p>
             <button id="btnDownloadZip" class="btn btn-success">📦 Скачать все приложения (ZIP-архив)</button>
         </div>
     </div>
@@ -63,7 +62,8 @@
     <script src="../vendor/jszip.min.js"></script>
     <script src="../vendor/FileSaver.min.js"></script>
     
-    <!-- Логика страницы -->
+    <!-- Логика генерации -->
+    <script src="../assets/js/services/apps-generator.js"></script>
     <script src="../assets/js/pages/admin-generate-apps.js"></script>
 </body>
 </html>
