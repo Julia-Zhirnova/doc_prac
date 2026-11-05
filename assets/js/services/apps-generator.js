@@ -120,7 +120,7 @@
 
         var zip = new global.PizZip(templateBuffer);
         var doc = new Docx(zip, {
-            delimiters: { start: '{{', end: '}}' }, // <-- ГЛАВНОЕ ИСПРАВЛЕНИЕ ОШИБКИ "Multi error"
+            delimiters: { start: '{{', end: '}}' },
             paragraphLoop: true,
             linebreaks: true,
             nullGetter: function () { return ''; }
@@ -168,6 +168,8 @@
         OO_FIELDS: OO_FIELDS,
         parseDate: parseDate,
         monthInWords: monthInWords,
+        dayOf: dayOf,
+        yearOf: yearOf,
         findGroup: findGroup,
         findCalendar: findCalendar,
         buildDocData: buildDocData,

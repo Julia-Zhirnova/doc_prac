@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let generatedZip = null;
     let refData = { groups: [], calendar: [], modules: [] };
 
-    // 1. Загрузка справочников при старте
     async function loadRefData() {
         try {
             const t = Date.now();
@@ -19,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
             refData.modules = await (await fetch(`../data/modules.json?t=${t}`)).json();
             statusLog.textContent = '✅ Справочники загружены. Готов к работе.';
             
-            // Создаем кнопку генерации динамически, так как она зависит от данных
             if (!document.getElementById('btnGenerate')) {
                 const btn = document.createElement('button');
                 btn.id = 'btnGenerate';
@@ -35,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     loadRefData();
 
-    // 2. Генерация шаблона Excel
     if (btnDownloadTemplate) {
         btnDownloadTemplate.addEventListener('click', () => {
             const wb = XLSX.utils.book_new();
@@ -57,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. Чтение Excel
     excelInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -82,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsArrayBuffer(file);
     });
 
-    // 4. Вспомогательные функции
     function getMonthInWords(dateStr) {
         if (!dateStr) return '____';
         const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -96,19 +91,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function findRefData(groupCode, practiceType) {
         const group = refData.groups.find(g => g.code.trim().toUpperCase() === groupCode.trim().toUpperCase());
+        const modules = refData.modules.filter(m => 
+            m.group_code.trim().toUpperCase() === groupCode.trim().toUpperCase() && 
+            m.practice_type.trim().toUpperCase() === practiceType.trim().toUpperCase()
+        );
         const calendarEntry = refData.calendar.find(c => 
             c.group_code.trim().toUpperCase() === groupCode.trim().toUpperCase() && 
             c.practice_type.trim().toUpperCase() === practiceType.trim().toUpperCase()
         );
-        const moduleEntry = refData.modules.find(m => 
-            m.group_code.trim().toUpperCase() === groupCode.trim().toUpperCase() && 
-            m.practice_type.trim().toUpperCase() === practiceType.trim().toUpperCase()
-        );
-
-        return { group, calendarEntry, moduleEntry };
+        return { group, calendarEntry, modules };
     }
 
-    // 5. Основная генерация
     async function generateDocuments() {
         if (excelData.length === 0) return;
         
@@ -120,10 +113,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let successCount = 0;
 
         try {
-            const app1Template = await (await fetch('../templates/pp-app1.docx')).arrayBuffer();
-            const app2Template = await (await fetch('../templates/pp-app2.docx')).arrayBuffer();
+            const t = Date.now();
+            const app1Template = await (await fetch(`../templates/pp-app1.docx?t=${t}`)).arrayBuffer();
+            const app2Template = await (await fetch(`../templates/pp-app2.docx?t=${t}`)).arrayBuffer();
 
-            // Группируем по организации + группе + типу практики
             const groupedData = {};
             excelData.forEach(row => {
                 const groupCode = String(row['Группа'] || '').trim().toUpperCase();
@@ -133,19 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!groupedData[key]) {
                     const ref = findRefData(groupCode, practiceType);
-                    groupedData[key] = {
-                        orgName,
-                        groupCode,
-                        practiceType,
-                        ref,
-                        students: []
-                    };
+                    groupedData[key] = { orgName, groupCode, practiceType, ref, students: [] };
                 }
 
                 groupedData[key].students.push({
                     fio: String(row['ФИО'] || 'Не указано').trim(),
                     birthdate: String(row['Дата рождения'] || '__.__.____').trim(),
-                    // Сохраняем данные организации из первой строки группы для подстановки
                     должность_руководительПО: String(row['должность_руководительПО'] || 'Руководитель').trim(),
                     руководительПО_наставник_полностью: String(row['руководительПО_наставник_полностью'] || 'Не указано').trim(),
                     телефон_руководительПО_наставник: String(row['телефон_руководительПО_наставник'] || '').trim(),
@@ -158,51 +144,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for (const [key, data] of Object.entries(groupedData)) {
                 const { orgName, groupCode, practiceType, ref, students } = data;
-                const { group, calendarEntry, moduleEntry } = ref;
+                const { group, calendarEntry, modules } = ref;
 
                 const startDate = calendarEntry ? calendarEntry.start_date : 'дд.мм.гггг';
                 const endDate = calendarEntry ? calendarEntry.end_date : 'дд.мм.гггг';
                 
-                // Формируем данные для шаблона Word
+                const moduleNames = modules.map(m => `${m.pm_code} ${m.pm_name}`).join(', ');
+                const totalHours = modules.reduce((sum, m) => sum + (parseInt(m.hours, 10) || 0), 0);
+                
+                // Собираем уникальных преподавателей из найденных модулей
+                const uniqueInstructors = [];
+                modules.forEach(m => {
+                    if (m.instructor_fio && m.instructor_phone) {
+                        const exists = uniqueInstructors.find(i => i.fio === m.instructor_fio);
+                        if (!exists) uniqueInstructors.push({ fio: m.instructor_fio, phone: m.instructor_phone });
+                    }
+                });
+
+                const inst1 = uniqueInstructors[0] || { fio: "", phone: "" };
+                const inst2 = uniqueInstructors[1] || { fio: "", phone: "" };
+
+                // Формируем красивую строку для шаблона (без лишних запятых, если руководитель один)
+                let rukText = "";
+                if (inst1.fio) rukText += `${inst1.fio}, т. ${inst1.phone}`;
+                if (inst2.fio) rukText += `, ${inst2.fio}, т. ${inst2.phone}`;
+                if (!rukText) rukText = "____________, т. ____________";
+
                 const docData = {
-                    модуль: moduleEntry ? `${moduleEntry.pm_code} ${moduleEntry.pm_name}` : 'Модуль не найден в справочнике',
+                    модуль: moduleNames || 'Модуль не найден в справочнике',
                     день_начала: startDate.split('.')[0] || '__',
                     месяц_начала: getMonthInWords(startDate),
                     день_заверешения: endDate.split('.')[0] || '__',
                     месяц_заверешения: getMonthInWords(endDate),
                     год: startDate.split('.')[2] || '2026',
                     специальность: group ? `${group.spec_code} ${group.spec_name}` : 'Специальность не найдена',
-                    часы: moduleEntry ? moduleEntry.hours : '0',
-                    
-                    руководительОО_первый_полностью: "Жирнова Юлия Витальевна",
-                    телефон_руководительОО_первый: "8-915-059-42-53",
-                    руководительОО_второй_полностью: "Тарджиманян Лия Николаевна",
-                    телефон_руководительОО_второй: "8-915-059-50-47",
+                    часы: totalHours > 0 ? String(totalHours) : '0',
                     
                     названиеПО: orgName,
-                    должность_наставникПО: students[0].должность_руководительПО,
-                    руководительПО_наставник_полностью: students[0].руководительПО_наставник_полностью,
-                    телефон_руководительПО_наставник: students[0].телефон_руководительПО_наставник,
+                    адресПО: students[0].адресПО || '____________',
+                    помещение: students[0].помещение || '____________',
+                    должность_руководительПО: students[0].должность_руководительПО || '____________',
                     
-                    ответственныйПО: students[0].ответственныйПО,
-                    ответственныйПО_телефон: students[0].ответственныйПО_телефон,
-                    адресПО: students[0].адресПО,
-                    помещение: students[0].помещение,
+                    должность_наставникПО: students[0].руководительПО_наставник_полностью ? students[0].должность_руководительПО : '____________',
+                    руководительПО_наставник_полностью: students[0].руководительПО_наставник_полностью || '____________',
+                    телефон_руководительПО_наставник: students[0].телефон_руководительПО_наставник || '____________',
+                    
+                    ответственныйПО: students[0].ответственныйПО || '____________',
+                    ответственныйПО_телефон: students[0].ответственныйПО_телефон || '____________',
+                    
+                    // Передаем и по отдельности (для совместимости), и единой строкой (для идеального вида)
+                    руководительОО_первый_полностью: inst1.fio || '____________',
+                    телефон_руководительОО_первый: inst1.phone || '____________',
+                    руководительОО_второй_полностью: inst2.fio || '',
+                    телефон_руководительОО_второй: inst2.phone || '',
+                    руководители_ОО: rukText, // <-- ИСПОЛЬЗУЙТЕ ЭТУ ПЕРЕМЕННУЮ В ШАБЛОНЕ
                     
                     students: students
                 };
 
                 const safeOrgName = orgName.replace(/[^a-zа-яё0-9]/gi, '_').substring(0, 30);
 
-                // Генерация Приложения 1
                 const zip1 = new PizZip(app1Template);
-                const doc1 = new window.docxtemplater(zip1, { paragraphLoop: true, linebreaks: true });
+                const doc1 = new window.docxtemplater(zip1, { paragraphLoop: true, linebreaks: true, delimiters: { start: '{{', end: '}}' } });
                 doc1.render(docData);
                 generatedZip.file(`Приложение_1_${safeOrgName}_${groupCode}.docx`, doc1.getZip().generate({ type: 'blob' }));
 
-                // Генерация Приложения 2
                 const zip2 = new PizZip(app2Template);
-                const doc2 = new window.docxtemplater(zip2, { paragraphLoop: true, linebreaks: true });
+                const doc2 = new window.docxtemplater(zip2, { paragraphLoop: true, linebreaks: true, delimiters: { start: '{{', end: '}}' } });
                 doc2.render(docData);
                 generatedZip.file(`Приложение_2_${safeOrgName}_${groupCode}.docx`, doc2.getZip().generate({ type: 'blob' }));
 
@@ -210,10 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             statusLog.textContent = `✅ Успешно сгенерировано документов для ${successCount} организаций/групп. Упаковка ZIP...`;
-            
             const content = await generatedZip.generateAsync({ type: 'blob' });
             saveAs(content, `Приложения_к_договору_${new Date().toISOString().slice(0,10)}.zip`);
-            
             statusLog.textContent = '🎉 Архив успешно скачан!';
             downloadArea.classList.remove('hidden');
 
@@ -225,7 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 6. Повторное скачивание ZIP
     if (btnDownloadZip) {
         btnDownloadZip.addEventListener('click', () => {
             if (!generatedZip) return;
