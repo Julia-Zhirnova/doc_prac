@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генерация индивидуальных заданий</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 1400px; margin: 1rem auto; padding: 0 1rem; color: #333; }
+        .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+        .header-nav h1 { margin: 0; font-size: 1.5rem; }
+        .card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.95rem; font-weight: bold; margin-right: 8px; margin-bottom: 8px; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-success { background: #2ecc71; color: white; }
+        .btn-secondary { background: #95a5a6; color: white; }
+        
+        .filter-row { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+        .filter-select { padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; min-width: 150px; }
+        
+        .table-container { overflow-x: auto; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 800px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+        th { background: #ecf0f1; }
+        tr.selected { background: #d4edda; }
+        
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 0.5rem; color: #2c3e50; }
+        .form-group input { width: 100%; max-width: 400px; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem; box-sizing: border-box; }
+        
+        .log-box { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 4px; font-family: monospace; white-space: pre-wrap; font-size: 0.9rem; margin-top: 1rem; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="header-nav">
+        <h1>📝 Генерация индивидуальных заданий</h1>
+        <div style="display: flex; gap: 10px;">
+            <a href="practice-setup.html" class="btn btn-secondary">⚙️ Настройка справочников</a>
+            <a href="generate-apps.html" class="btn btn-success">📄 Генерация приложений</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>1. Выберите модули для генерации</h2>
+        <div class="filter-row">
+            <select id="filterGroup" class="filter-select" onchange="renderTasksTable()">
+                <option value="">Все группы</option>
+            </select>
+            <select id="filterSemester" class="filter-select" onchange="renderTasksTable()">
+                <option value="">Все семестры</option>
+                <option value="all-autumn">Все осенние</option>
+                <option value="all-spring">Все весенние</option>
+                <option value="1">1 семестр</option><option value="2">2 семестр</option>
+                <option value="3">3 семестр</option><option value="4">4 семестр</option>
+                <option value="5">5 семестр</option><option value="6">6 семестр</option>
+                <option value="7">7 семестр</option><option value="8">8 семестр</option>
+            </select>
+            <select id="filterType" class="filter-select" onchange="renderTasksTable()">
+                <option value="">Все типы</option>
+                <option value="УП">УП</option>
+                <option value="ПП">ПП</option>
+            </select>
+            <button class="btn btn-secondary" onclick="selectAllTasks(true)">Выбрать все</button>
+            <button class="btn btn-secondary" onclick="selectAllTasks(false)">Снять выделение</button>
+        </div>
+
+        <div class="table-container">
+            <table id="tasksTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">✓</th>
+                        <th>Группа</th>
+                        <th>Сем.</th>
+                        <th>Тип</th>
+                        <th>Модуль (ПМ)</th>
+                        <th>Часы</th>
+                        <th>Период</th>
+                    </tr>
+                </thead>
+                <tbody id="tasksBody"></tbody>
+            </table>
+        </div>
+        <p id="selectionCount" style="font-weight: bold; color: #2980b9;">Выбрано модулей: 0</p>
+    </div>
+
+    <div class="card">
+        <h2>2. Данные для генерации</h2>
+        <div class="form-group">
+            <label for="studentName">ФИО студента (если не заполнено, останется прочерк)</label>
+            <input type="text" id="studentName" placeholder="Иванов Иван Иванович">
+        </div>
+
+        <button id="btnGenerateTasks" class="btn btn-success" disabled>📦 Сформировать задания (ZIP)</button>
+        <div id="taskLog" class="log-box hidden"></div>
+    </div>
+
+    <script src="../vendor/pizzip.min.js"></script>
+    <script src="../vendor/docxtemplater.js"></script>
+    <script src="../vendor/jszip.min.js"></script>
+    <script src="../vendor/FileSaver.min.js"></script>
+    
+    <script>
+        let modules = [];
+        let calendar = [];
+        let groups = [];
+        let selectedTaskKeys = new Set();
+
+        const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+        function getMonthInWords(dateStr) {
+            if (!dateStr) return '____';
+            const parts = String(dateStr).split('.');
+            if (parts.length >= 2) {
+                const monthIndex = parseInt(parts[1], 10) - 1;
+                return MONTHS[monthIndex] || '____';
+            }
+            return '____';
+        }
+
+        async function loadData() {
+            try {
+                const t = Date.now();
+                groups = await (await fetch(`../data/groups.json?t=${t}`)).json();
+                calendar = await (await fetch(`../data/calendar.json?t=${t}`)).json();
+                modules = await (await fetch(`../data/modules.json?t=${t}`)).json();
+                
+                populateFilters();
+                renderTasksTable();
+            } catch (e) {
+                console.error("Ошибка загрузки данных:", e);
+            }
+        }
+
+        function populateFilters() {
+            const groupSelect = document.getElementById('filterGroup');
+            const groupCodes = [...new Set(modules.map(m => m.group_code))].sort();
+            groupCodes.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g;
+                opt.textContent = g;
+                groupSelect.appendChild(opt);
+            });
+        }
+
+        function renderTasksTable() {
+            const tbody = document.getElementById('tasksBody');
+            tbody.innerHTML = '';
+            
+            const fGroup = document.getElementById('filterGroup').value;
+            const fSem = document.getElementById('filterSemester').value;
+            const fType = document.getElementById('filterType').value;
+
+            modules.forEach((module) => {
+                if (fGroup && module.group_code !== fGroup) return;
+                if (fSem) {
+                    if (fSem === 'all-autumn' && ![1, 3, 5, 7].includes(parseInt(module.semester))) return;
+                    if (fSem === 'all-spring' && ![2, 4, 6, 8].includes(parseInt(module.semester))) return;
+                    if (!['all-autumn', 'all-spring'].includes(fSem) && String(module.semester) !== fSem) return;
+                }
+                if (fType && module.practice_type !== fType) return;
+
+                const cal = calendar.find(c => 
+                    c.group_code === module.group_code && 
+                    c.semester == module.semester && 
+                    c.practice_type === module.practice_type
+                );
+                const period = cal ? `${cal.start_date} – ${cal.end_date}` : 'Период не найден';
+                const isChecked = selectedTaskKeys.has(module.id);
+
+                const tr = document.createElement('tr');
+                tr.className = isChecked ? 'selected' : '';
+                tr.style.cursor = 'pointer';
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="task-check" data-id="${module.id}" ${isChecked ? 'checked' : ''}></td>
+                    <td><b>${module.group_code}</b></td>
+                    <td>${module.semester}</td>
+                    <td>${module.practice_type}</td>
+                    <td>${module.pm_code} ${module.pm_name}</td>
+                    <td>${module.hours}</td>
+                    <td>${period}</td>
+                `;
+                
+                tr.addEventListener('click', (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        const cb = tr.querySelector('.task-check');
+                        cb.checked = !cb.checked;
+                    }
+                    toggleTaskSelection(module.id, tr.querySelector('.task-check').checked);
+                });
+                tr.querySelector('.task-check').addEventListener('change', (e) => {
+                    toggleTaskSelection(module.id, e.target.checked);
+                });
+
+                tbody.appendChild(tr);
+            });
+
+            updateSelectionUI();
+        }
+
+        function toggleTaskSelection(id, isChecked) {
+            if (isChecked) selectedTaskKeys.add(id);
+            else selectedTaskKeys.delete(id);
+            renderTasksTable();
+        }
+
+        function selectAllTasks(state) {
+            const fGroup = document.getElementById('filterGroup').value;
+            const fSem = document.getElementById('filterSemester').value;
+            const fType = document.getElementById('filterType').value;
+
+            modules.forEach(module => {
+                if (fGroup && module.group_code !== fGroup) return;
+                if (fSem) {
+                    if (fSem === 'all-autumn' && ![1, 3, 5, 7].includes(parseInt(module.semester))) return;
+                    if (fSem === 'all-spring' && ![2, 4, 6, 8].includes(parseInt(module.semester))) return;
+                    if (!['all-autumn', 'all-spring'].includes(fSem) && String(module.semester) !== fSem) return;
+                }
+                if (fType && module.practice_type !== fType) return;
+                
+                if (state) selectedTaskKeys.add(module.id);
+                else selectedTaskKeys.delete(module.id);
+            });
+            renderTasksTable();
+        }
+
+        function updateSelectionUI() {
+            document.getElementById('selectionCount').textContent = `Выбрано модулей: ${selectedTaskKeys.size}`;
+            document.getElementById('btnGenerateTasks').disabled = selectedTaskKeys.size === 0;
+        }
+
+        document.getElementById('btnGenerateTasks').addEventListener('click', async () => {
+            const log = document.getElementById('taskLog');
+            log.classList.remove('hidden');
+            log.textContent = '⏳ Загрузка шаблона и генерация заданий...';
+            
+            try {
+                const t = Date.now();
+                const templateResponse = await fetch(`../templates/Задание с переменными.docx?t=${t}`);
+                if (!templateResponse.ok) throw new Error('Шаблон "Задание с переменными.docx" не найден в папке templates/');
+                const template = await templateResponse.arrayBuffer();
+
+                const studentName = document.getElementById('studentName').value.trim();
+                const studentDisplay = studentName ? studentName : '___________________________';
+
+                const zip = new JSZip();
+                let count = 0;
+
+                for (const moduleId of selectedTaskKeys) {
+                    const module = modules.find(m => m.id === moduleId);
+                    if (!module) continue;
+
+                    const group = groups.find(g => g.code === module.group_code);
+                    const cal = calendar.find(c => 
+                        c.group_code === module.group_code && 
+                        c.semester == module.semester && 
+                        c.practice_type === module.practice_type
+                    );
+
+                    const startDate = cal ? cal.start_date : '01.01.2024';
+                    const endDate = cal ? cal.end_date : '01.01.2024';
+                    const startParts = startDate.split('.');
+                    const endParts = endDate.split('.');
+
+                    const practiceTypeText = module.practice_type === 'УП' ? 'учебн' : 'производственн';
+                    
+                    // Форматируем компетенции: если они есть в JSON как массив, объединяем через перенос строки
+                    let compText = 'Компетенции не указаны';
+                    if (module.competencies && Array.isArray(module.competencies)) {
+                        compText = module.competencies.join('\n');
+                    } else if (typeof module.competencies === 'string') {
+                        compText = module.competencies;
+                    }
+
+                    const docData = {
+                        день_начала_проверить: startParts[0],
+                        месяц_начала: getMonthInWords(startDate),
+                        год: startParts[2],
+                        тип_практики: practiceTypeText,
+                        специальность: group ? `${group.spec_code} ${group.spec_name}` : 'Специальность не найдена',
+                        модуль: module.pm_name,
+                        мдк: module.mdk.replace(/\n/g, ', '),
+                        часы: String(module.hours),
+                        день_начала: startParts[0],
+                        месяц_начала_цифрой: startParts[1],
+                        день_заверешения: endParts[0], // как в шаблоне
+                        день_завершения_проверить: endParts[0], // вариант написания из шаблона
+                        месяц_заверешения_цифрой: endParts[1],
+                        месяц_заверешения: getMonthInWords(endDate),
+                        компетенции: compText,
+                        руководитель_число: startParts[0],
+                        руководитель_первый: module.instructor_fio || '_______________',
+                        руководитель_второй: '', // Можно доработать, если есть второй преподаватель
+                        фио_студента: studentDisplay
+                    };
+
+                    const zipDoc = new PizZip(template);
+                    const doc = new window.docxtemplater(zipDoc, { 
+                        paragraphLoop: true, 
+                        linebreaks: true,
+                        delimiters: { start: '{{', end: '}}' }
+                    });
+                    
+                    try {
+                        doc.render(docData);
+                    } catch (err) {
+                        console.error("Ошибка рендеринга docxtemplater:", err);
+                        throw new Error(`Ошибка в шаблоне Word: ${err.message}`);
+                    }
+                    
+                    const safeName = `${module.group_code}_${module.practice_type}_${module.pm_code}`.replace(/[^a-zа-яё0-9]/gi, '_');
+                    const fileName = studentName 
+                        ? `Задание_${safeName}_${studentName.replace(/\s+/g, '_')}.docx`
+                        : `Задание_${safeName}.docx`;
+                        
+                    zip.file(fileName, doc.getZip().generate({ type: 'blob' }));
+                    count++;
+                }
+
+                const content = await zip.generateAsync({ type: 'blob' });
+                saveAs(content, `Индивидуальные_задания_${new Date().toISOString().slice(0,10)}.zip`);
+                log.textContent = `✅ Успешно! Сформировано заданий: ${count}. Архив скачан.`;
+            } catch (error) {
+                console.error(error);
+                log.textContent = `❌ Ошибка: ${error.message}`;
+            }
+        });
+
+        loadData();
+    </script>
+</body>
+</html>
