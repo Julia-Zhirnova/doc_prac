@@ -86,6 +86,40 @@
         .log-box { background: #2c3e50; color: #ecf0f1; padding: 1rem; border-radius: 4px; font-family: monospace; white-space: pre-wrap; font-size: 0.9rem; margin-top: 1rem; }
         .hidden { display: none; }
         
+        .competency-item { 
+            background: #fffbe6; 
+            border: 1px solid #ffe58f; 
+            border-radius: 4px; 
+            padding: 6px 10px; 
+            margin: 4px 0; 
+            font-size: 0.85rem; 
+            cursor: text;
+            position: relative;
+        }
+        .competency-item:focus { 
+            outline: 2px solid #3498db; 
+            background: #fff; 
+        }
+        .competency-item .remove-btn {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 12px;
+            line-height: 16px;
+            text-align: center;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+        .competency-item .remove-btn:hover {
+            opacity: 1;
+        }
+        
         @media (max-width: 768px) {
             body { margin: 0.5rem auto; padding: 0 0.5rem; }
             .btn { width: 100%; margin-right: 0; }
@@ -118,7 +152,7 @@
     <div id="groups" class="tab-content active">
         <div class="card">
             <div style="margin-bottom: 1rem;">
-                <button class="btn btn-warning" onclick="addRow('groups')"> Добавить группу</button>
+                <button class="btn btn-warning" onclick="addRow('groups')">➕ Добавить группу</button>
                 <button class="btn btn-success" onclick="downloadJSON('groups', 'groups.json')">💾 Скачать groups.json</button>
             </div>
             <div class="table-container">
@@ -209,11 +243,11 @@
             </div>
             <div class="modules-grid">
                 <div class="semester-column">
-                    <h3>1 семестр (осень)</h3>
+                    <h3>Осенние семестры (1, 3, 5, 7)</h3>
                     <div id="autumnModules"></div>
                 </div>
                 <div class="semester-column">
-                    <h3>2 семестр (весна)</h3>
+                    <h3>Весенние семестры (2, 4, 6, 8)</h3>
                     <div id="springModules"></div>
                 </div>
             </div>
@@ -371,7 +405,6 @@
         let data = { groups: [], calendar: [], modules: [] };
         let filterState = { group: '', type: '', semester: '' };
         let moduleFilterState = { group: '', semester: '', practiceType: '' };
-        let refData = { groups: [], calendar: [], modules: [] };
         let practiceBlocks = [];
         let selectedBlockKeys = new Set();
 
@@ -381,7 +414,6 @@
                 data.groups = await (await fetch(`../data/groups.json?t=${t}`)).json();
                 data.calendar = await (await fetch(`../data/calendar.json?t=${t}`)).json();
                 data.modules = await (await fetch(`../data/modules.json?t=${t}`)).json();
-                refData = {...data};
                 updateDebugInfo();
                 renderAll();
                 populateGroupSelectors();
@@ -520,6 +552,19 @@
                 const mdkList = module.mdk.split('\n').filter(m => m.trim());
                 const mdkHtml = mdkList.map(m => `<div class="module-mdk-item">${m.trim()}</div>`).join('');
                 
+                // Формируем список компетенций - каждая редактируемая
+                const competencies = module.competencies || [];
+                const competenciesHtml = competencies.map((comp, idx) => `
+                    <div class="competency-item" 
+                         contenteditable="true" 
+                         data-module-id="${module.id}" 
+                         data-field="competency_${idx}"
+                         title="Правый клик для удаления">
+                        <button class="remove-btn" onclick="removeCompetency('${module.id}', ${idx})" title="Удалить">×</button>
+                        🎯 ${comp}
+                    </div>
+                `).join('');
+                
                 const cardHtml = `
                     <div class="module-card" data-id="${module.id}">
                         <div class="module-practice">${module.practice_type}.${module.pm_code.split('.')[1] || ''}</div>
@@ -528,11 +573,12 @@
                         <div class="module-mdk-list">${mdkHtml}</div>
                         <span class="module-hours">${module.hours} ч</span>
                         <div style="margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid #eee;">
+                            <div style="font-weight: bold; color: #2c3e50; margin-bottom: 0.5rem; font-size: 0.9rem;">👨‍🏫 Преподаватель:</div>
                             <div contenteditable="true" 
                                  data-module-id="${module.id}" 
                                  data-field="instructor_fio" 
                                  style="border-bottom: 1px dashed #ccc; padding: 4px; color: #2c3e50; font-weight: bold; cursor: text;">
-                                👨‍🏫 ${module.instructor_fio || 'Введите ФИО преподавателя'}
+                                ${module.instructor_fio || 'Введите ФИО преподавателя'}
                             </div>
                             <div contenteditable="true" 
                                  data-module-id="${module.id}" 
@@ -540,6 +586,11 @@
                                  style="border-bottom: 1px dashed #ccc; padding: 4px; color: #2c3e50; margin-top: 4px; cursor: text;">
                                 📞 ${module.instructor_phone || 'Введите телефон'}
                             </div>
+                        </div>
+                        <div style="margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid #eee;">
+                            <div style="font-weight: bold; color: #2c3e50; margin-bottom: 0.5rem; font-size: 0.9rem;">🎯 Профессиональные компетенции (ПК):</div>
+                            ${competenciesHtml || '<div style="color: #999; font-size: 0.85rem; padding: 4px;">Компетенции не указаны</div>'}
+                            <button onclick="addCompetency('${module.id}')" style="margin-top: 6px; padding: 4px 8px; font-size: 0.75rem; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer;">➕ Добавить ПК</button>
                         </div>
                     </div>
                 `;
@@ -550,7 +601,45 @@
                     springDiv.innerHTML += cardHtml;
                 }
             });
+            
+            if (autumnDiv.innerHTML === '') autumnDiv.innerHTML = '<p style="text-align:center; color:#999;">Нет модулей</p>';
+            if (springDiv.innerHTML === '') springDiv.innerHTML = '<p style="text-align:center; color:#999;">Нет модулей</p>';
         }
+
+        // Функция добавления новой компетенции
+        window.addCompetency = function(moduleId) {
+            const module = data.modules.find(m => m.id === moduleId);
+            if (!module) return;
+            
+            if (!module.competencies) module.competencies = [];
+            module.competencies.push('ПК . . ');
+            
+            // Перерисовываем таблицу модулей
+            renderModulesTable();
+            
+            // Фокус на новую компетенцию
+            setTimeout(() => {
+                const newEl = document.querySelector(`[data-module-id="${moduleId}"][data-field="competency_${module.competencies.length - 1}"]`);
+                if (newEl) {
+                    newEl.focus();
+                    // Выделяем весь текст для удобства редактирования
+                    const range = document.createRange();
+                    range.selectNodeContents(newEl);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }, 50);
+        };
+
+        // Функция удаления компетенции
+        window.removeCompetency = function(moduleId, idx) {
+            const module = data.modules.find(m => m.id === moduleId);
+            if (!module || !module.competencies) return;
+            
+            module.competencies.splice(idx, 1);
+            renderModulesTable();
+        };
 
         // Глобальный обработчик для сохранения изменений в карточках модулей
         document.addEventListener('input', (e) => {
@@ -559,8 +648,14 @@
                 const field = e.target.dataset.field;
                 const module = data.modules.find(m => m.id === moduleId);
                 if (module) {
-                    module[field] = e.target.textContent.trim();
-                    console.log(`Saved: ${moduleId} ${field} = ${module[field]}`);
+                    // Обработка компетенций (competency_0, competency_1, ...)
+                    if (field.startsWith('competency_')) {
+                        const idx = parseInt(field.split('_')[1]);
+                        if (!module.competencies) module.competencies = [];
+                        module.competencies[idx] = e.target.textContent.trim();
+                    } else {
+                        module[field] = e.target.textContent.trim();
+                    }
                 }
             }
         });
@@ -629,7 +724,8 @@
                     mdk: "МДК.00.01",
                     hours: 0,
                     instructor_fio: "",
-                    instructor_phone: ""
+                    instructor_phone: "",
+                    competencies: []
                 });
             }
             updateDebugInfo();
@@ -944,7 +1040,6 @@
                         адресПО: formData.адресПО || '____________',
                         помещение: formData.помещение || '____________',
                         
-                        // ИСПРАВЛЕНО: добавлено правильное имя переменной для шаблона
                         должность_наставникПО: formData.должность_наставникПО || 'должность_наставникПО',
                         руководительПО_наставник_полностью: formData.руководительПО_наставник_полностью || 'руководительПО_наставник_полностью',
                         телефон_руководительПО_наставник: formData.телефон_руководительПО_наставник || 'телефон_руководительПО_наставник',
@@ -956,7 +1051,7 @@
                         руководительОО_первый_полностью: G.DEFAULT_OO.руководительОО_первый_полностью,
                         телефон_руководительОО_первый: G.DEFAULT_OO.телефон_руководительОО_первый,
                         руководительОО_второй_полностью: G.DEFAULT_OO.руководительОО_второй_полностью,
-                        телефон_руководительОО_второй: G.DEFAULT_OO.телефон_руководительОО_второй,
+                        телефон_руководительОО_второй: G.DEFAULT_OO.телефон_руководительОО_вторый,
                         
                         students: []
                     };
@@ -973,7 +1068,7 @@
                 log.textContent = `✅ Успешно! Сформировано комплектов: ${count}. Архив скачан.`;
             } catch (error) {
                 console.error(error);
-                log.textContent = ` Ошибка: ${G.explainError(error)}`;
+                log.textContent = `❌ Ошибка: ${G.explainError(error)}`;
             }
         });
 
